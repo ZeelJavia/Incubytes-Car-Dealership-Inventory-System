@@ -1,0 +1,590 @@
+### Car Dealership Inventory System — REST Client File
+### Use with VS Code REST Client extension or JetBrains HTTP Client
+
+@baseUrl = http://localhost:3001
+@contentType = application/json
+
+# ─────────────────────────────────────
+# Copy the token from the response and
+# paste it below after "Bearer "
+# ─────────────────────────────────────
+@userToken  = PASTE_USER_TOKEN_HERE
+@adminToken = PASTE_ADMIN_TOKEN_HERE
+@vehicleId  = PASTE_VEHICLE_ID_HERE
+
+
+###############################################################################
+# AUTH — REGISTER
+###############################################################################
+
+### [F1-1] Register — valid → 201 + token + user (no passwordHash)
+# @name register_valid
+POST {{baseUrl}}/api/auth/register
+Content-Type: {{contentType}}
+
+{
+  "name": "Alice Smith",
+  "email": "alice@example.com",
+  "password": "Password123"
+}
+
+---
+
+### [F1-2] Register — duplicate email → 409
+POST {{baseUrl}}/api/auth/register
+Content-Type: {{contentType}}
+
+{
+  "name": "Alice Again",
+  "email": "alice@example.com",
+  "password": "Password123"
+}
+
+---
+
+### [F1-3] Register — missing name → 400
+POST {{baseUrl}}/api/auth/register
+Content-Type: {{contentType}}
+
+{
+  "email": "bob@example.com",
+  "password": "Password123"
+}
+
+---
+
+### [F1-4] Register — invalid email → 400
+POST {{baseUrl}}/api/auth/register
+Content-Type: {{contentType}}
+
+{
+  "name": "Bob",
+  "email": "not-an-email",
+  "password": "Password123"
+}
+
+---
+
+### [F1-5] Register — password < 8 chars → 400
+POST {{baseUrl}}/api/auth/register
+Content-Type: {{contentType}}
+
+{
+  "name": "Bob",
+  "email": "bob@example.com",
+  "password": "short"
+}
+
+---
+
+### [F1-6] Register — empty body → 400
+POST {{baseUrl}}/api/auth/register
+Content-Type: {{contentType}}
+
+{}
+
+---
+
+###############################################################################
+# AUTH — LOGIN
+###############################################################################
+
+### [F2-1] Login — valid credentials → 200 + JWT
+# @name login_valid
+POST {{baseUrl}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "alice@example.com",
+  "password": "Password123"
+}
+
+---
+
+### [F2-2] Login — wrong password → 401
+POST {{baseUrl}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "alice@example.com",
+  "password": "WrongPassword"
+}
+
+---
+
+### [F2-3] Login — unknown email → 401 (SAME message as wrong password)
+POST {{baseUrl}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "nobody@example.com",
+  "password": "Password123"
+}
+
+---
+
+### [F2-4] Login — missing password → 400
+POST {{baseUrl}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "alice@example.com"
+}
+
+---
+
+### [F2-5] Login — missing email → 400
+POST {{baseUrl}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "password": "Password123"
+}
+
+---
+
+###############################################################################
+# AUTH MIDDLEWARE
+###############################################################################
+
+### [F3-1] No token → 401
+GET {{baseUrl}}/api/vehicles
+
+---
+
+### [F3-2] Malformed token → 401
+GET {{baseUrl}}/api/vehicles
+Authorization: Bearer this.is.not.a.valid.jwt
+
+---
+
+### [F3-3] Wrong signing secret (tampered JWT) → 401
+GET {{baseUrl}}/api/vehicles
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxMjMiLCJyb2xlIjoiVVNFUiJ9.WRONGSIGNATURE
+
+---
+
+### [F3-4] Token without Bearer prefix → 401
+GET {{baseUrl}}/api/vehicles
+Authorization: {{userToken}}
+
+---
+
+###############################################################################
+# VEHICLES — CREATE
+###############################################################################
+
+### [F5-1] Create vehicle — valid → 201 + id
+POST {{baseUrl}}/api/vehicles
+Content-Type: {{contentType}}
+Authorization: Bearer {{userToken}}
+
+{
+  "make": "Toyota",
+  "model": "Camry",
+  "category": "Sedan",
+  "price": 25000,
+  "quantity": 10
+}
+
+---
+
+### [F5-2] Create vehicle — quantity=0 (valid) → 201
+POST {{baseUrl}}/api/vehicles
+Content-Type: {{contentType}}
+Authorization: Bearer {{userToken}}
+
+{
+  "make": "Honda",
+  "model": "Civic",
+  "category": "Sedan",
+  "price": 22000,
+  "quantity": 0
+}
+
+---
+
+### [F5-3] Create vehicle — negative price → 400
+POST {{baseUrl}}/api/vehicles
+Content-Type: {{contentType}}
+Authorization: Bearer {{userToken}}
+
+{
+  "make": "Ford",
+  "model": "Focus",
+  "category": "Sedan",
+  "price": -5000,
+  "quantity": 10
+}
+
+---
+
+### [F5-4] Create vehicle — price = 0 → 400
+POST {{baseUrl}}/api/vehicles
+Content-Type: {{contentType}}
+Authorization: Bearer {{userToken}}
+
+{
+  "make": "Ford",
+  "model": "Focus",
+  "category": "Sedan",
+  "price": 0,
+  "quantity": 10
+}
+
+---
+
+### [F5-5] Create vehicle — negative quantity → 400
+POST {{baseUrl}}/api/vehicles
+Content-Type: {{contentType}}
+Authorization: Bearer {{userToken}}
+
+{
+  "make": "Ford",
+  "model": "Focus",
+  "category": "Sedan",
+  "price": 20000,
+  "quantity": -3
+}
+
+---
+
+### [F5-6] Create vehicle — non-integer quantity → 400
+POST {{baseUrl}}/api/vehicles
+Content-Type: {{contentType}}
+Authorization: Bearer {{userToken}}
+
+{
+  "make": "Ford",
+  "model": "Focus",
+  "category": "Sedan",
+  "price": 20000,
+  "quantity": 2.5
+}
+
+---
+
+### [F5-7] Create vehicle — missing fields → 400
+POST {{baseUrl}}/api/vehicles
+Content-Type: {{contentType}}
+Authorization: Bearer {{userToken}}
+
+{
+  "make": "Toyota"
+}
+
+---
+
+### [F5-8] Create vehicle — no auth → 401
+POST {{baseUrl}}/api/vehicles
+Content-Type: {{contentType}}
+
+{
+  "make": "Toyota",
+  "model": "Camry",
+  "category": "Sedan",
+  "price": 25000,
+  "quantity": 10
+}
+
+---
+
+###############################################################################
+# VEHICLES — LIST
+###############################################################################
+
+### [F6-1] List all vehicles → 200 + array
+GET {{baseUrl}}/api/vehicles
+Authorization: Bearer {{userToken}}
+
+---
+
+### [F6-2] List vehicles — no auth → 401
+GET {{baseUrl}}/api/vehicles
+
+---
+
+###############################################################################
+# VEHICLES — SEARCH/FILTER
+###############################################################################
+
+### [F7-1] Filter by make (case-insensitive) → 200 + filtered array
+GET {{baseUrl}}/api/vehicles/search?make=toyota
+Authorization: Bearer {{userToken}}
+
+---
+
+### [F7-2] Filter by model
+GET {{baseUrl}}/api/vehicles/search?model=Camry
+Authorization: Bearer {{userToken}}
+
+---
+
+### [F7-3] Filter by category
+GET {{baseUrl}}/api/vehicles/search?category=Sedan
+Authorization: Bearer {{userToken}}
+
+---
+
+### [F7-4] Filter by minPrice only
+GET {{baseUrl}}/api/vehicles/search?minPrice=20000
+Authorization: Bearer {{userToken}}
+
+---
+
+### [F7-5] Filter by maxPrice only
+GET {{baseUrl}}/api/vehicles/search?maxPrice=30000
+Authorization: Bearer {{userToken}}
+
+---
+
+### [F7-6] Filter by price range (minPrice + maxPrice)
+GET {{baseUrl}}/api/vehicles/search?minPrice=20000&maxPrice=30000
+Authorization: Bearer {{userToken}}
+
+---
+
+### [F7-7] Multi-filter: make + category + minPrice (AND logic)
+GET {{baseUrl}}/api/vehicles/search?make=Toyota&category=Sedan&minPrice=24000
+Authorization: Bearer {{userToken}}
+
+---
+
+### [F7-8] No matches → 200 + empty array (NOT 404)
+GET {{baseUrl}}/api/vehicles/search?make=Lamborghini
+Authorization: Bearer {{userToken}}
+
+---
+
+### [F7-9] Non-numeric minPrice → 400
+GET {{baseUrl}}/api/vehicles/search?minPrice=notanumber
+Authorization: Bearer {{userToken}}
+
+---
+
+### [F7-10] Non-numeric maxPrice → 400
+GET {{baseUrl}}/api/vehicles/search?maxPrice=abc
+Authorization: Bearer {{userToken}}
+
+---
+
+### [F7-11] Search — no auth → 401
+GET {{baseUrl}}/api/vehicles/search?make=Toyota
+
+---
+
+###############################################################################
+# VEHICLES — UPDATE
+###############################################################################
+
+### [F8-1] Update — price only (partial update) → 200
+PUT {{baseUrl}}/api/vehicles/{{vehicleId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{userToken}}
+
+{
+  "price": 28000
+}
+
+---
+
+### [F8-2] Update — full update → 200
+PUT {{baseUrl}}/api/vehicles/{{vehicleId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{userToken}}
+
+{
+  "make": "Toyota",
+  "model": "Camry XLE",
+  "category": "Sedan",
+  "price": 30000,
+  "quantity": 8
+}
+
+---
+
+### [F8-3] Update — non-existent id → 404
+PUT {{baseUrl}}/api/vehicles/00000000-0000-0000-0000-000000000000
+Content-Type: {{contentType}}
+Authorization: Bearer {{userToken}}
+
+{
+  "price": 30000
+}
+
+---
+
+### [F8-4] Update — negative price → 400
+PUT {{baseUrl}}/api/vehicles/{{vehicleId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{userToken}}
+
+{
+  "price": -999
+}
+
+---
+
+### [F8-5] Update — negative quantity → 400
+PUT {{baseUrl}}/api/vehicles/{{vehicleId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{userToken}}
+
+{
+  "quantity": -1
+}
+
+---
+
+### [F8-6] Update — empty body (no fields to update) → 400
+PUT {{baseUrl}}/api/vehicles/{{vehicleId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{userToken}}
+
+{}
+
+---
+
+### [F8-7] Update — no auth → 401
+PUT {{baseUrl}}/api/vehicles/{{vehicleId}}
+Content-Type: {{contentType}}
+
+{
+  "price": 28000
+}
+
+---
+
+###############################################################################
+# VEHICLES — DELETE (ADMIN ONLY)
+###############################################################################
+
+### [F9-1] Delete — as USER → 403
+DELETE {{baseUrl}}/api/vehicles/{{vehicleId}}
+Authorization: Bearer {{userToken}}
+
+---
+
+### [F9-2] Delete — no auth → 401
+DELETE {{baseUrl}}/api/vehicles/{{vehicleId}}
+
+---
+
+### [F9-3] Delete — non-existent id → 404
+DELETE {{baseUrl}}/api/vehicles/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{adminToken}}
+
+---
+
+### [F9-4] Delete — as ADMIN → 200
+DELETE {{baseUrl}}/api/vehicles/{{vehicleId}}
+Authorization: Bearer {{adminToken}}
+
+---
+
+###############################################################################
+# PURCHASE
+###############################################################################
+
+### [F10-1] Purchase — in-stock vehicle → 200 (quantity decrements by 1)
+POST {{baseUrl}}/api/vehicles/{{vehicleId}}/purchase
+Authorization: Bearer {{userToken}}
+
+---
+
+### [F10-2] Purchase — already-at-zero vehicle → 409
+### (First set up a vehicle with quantity=0, then try to buy)
+POST {{baseUrl}}/api/vehicles/{{vehicleId}}/purchase
+Authorization: Bearer {{userToken}}
+
+---
+
+### [F10-3] Purchase — non-existent vehicle → 404
+POST {{baseUrl}}/api/vehicles/00000000-0000-0000-0000-000000000000/purchase
+Authorization: Bearer {{userToken}}
+
+---
+
+### [F10-4] Purchase — no auth → 401
+POST {{baseUrl}}/api/vehicles/{{vehicleId}}/purchase
+
+---
+
+###############################################################################
+# RESTOCK (ADMIN ONLY)
+###############################################################################
+
+### [F11-1] Restock — as USER → 403
+POST {{baseUrl}}/api/vehicles/{{vehicleId}}/restock
+Content-Type: {{contentType}}
+Authorization: Bearer {{userToken}}
+
+{
+  "amount": 5
+}
+
+---
+
+### [F11-2] Restock — as ADMIN, valid amount → 200 (quantity += amount)
+POST {{baseUrl}}/api/vehicles/{{vehicleId}}/restock
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminToken}}
+
+{
+  "amount": 10
+}
+
+---
+
+### [F11-3] Restock — amount = 0 → 400
+POST {{baseUrl}}/api/vehicles/{{vehicleId}}/restock
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminToken}}
+
+{
+  "amount": 0
+}
+
+---
+
+### [F11-4] Restock — negative amount → 400
+POST {{baseUrl}}/api/vehicles/{{vehicleId}}/restock
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminToken}}
+
+{
+  "amount": -5
+}
+
+---
+
+### [F11-5] Restock — non-integer amount → 400
+POST {{baseUrl}}/api/vehicles/{{vehicleId}}/restock
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminToken}}
+
+{
+  "amount": 2.5
+}
+
+---
+
+### [F11-6] Restock — missing amount → 400
+POST {{baseUrl}}/api/vehicles/{{vehicleId}}/restock
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminToken}}
+
+{}
+
+---
+
+### [F11-7] Restock — non-existent vehicle → 404
+POST {{baseUrl}}/api/vehicles/00000000-0000-0000-0000-000000000000/restock
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminToken}}
+
+{
+  "amount": 5
+}
+
+---

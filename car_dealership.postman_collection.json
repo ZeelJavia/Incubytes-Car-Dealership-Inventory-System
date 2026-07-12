@@ -1,0 +1,739 @@
+{
+  "info": {
+    "name": "Car Dealership Inventory System",
+    "description": "Complete API test collection covering all endpoints and edge cases",
+    "_postman_id": "car-dealership-api-v1",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl",    "value": "http://localhost:3001" },
+    { "key": "userToken",  "value": "" },
+    { "key": "adminToken", "value": "" },
+    { "key": "vehicleId",  "value": "" }
+  ],
+  "item": [
+
+    {
+      "name": "── AUTH ──",
+      "item": [
+
+        {
+          "name": "[F1-1] Register – valid (201)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Alice Smith\",\n  \"email\": \"alice@example.com\",\n  \"password\": \"Password123\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('status 201', () => pm.response.to.have.status(201));",
+                "pm.test('has token', () => pm.expect(pm.response.json().token).to.be.a('string'));",
+                "pm.test('no passwordHash', () => pm.expect(pm.response.json().user).to.not.have.property('passwordHash'));",
+                "pm.collectionVariables.set('userToken', pm.response.json().token);"
+              ]
+            }
+          }]
+        },
+
+        {
+          "name": "[F1-2] Register – duplicate email (409)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Alice Again\",\n  \"email\": \"alice@example.com\",\n  \"password\": \"Password123\"\n}"
+            }
+          }
+        },
+
+        {
+          "name": "[F1-3] Register – missing name (400)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"bob@example.com\",\n  \"password\": \"Password123\"\n}"
+            }
+          }
+        },
+
+        {
+          "name": "[F1-4] Register – invalid email (400)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Bob\",\n  \"email\": \"not-an-email\",\n  \"password\": \"Password123\"\n}"
+            }
+          }
+        },
+
+        {
+          "name": "[F1-5] Register – short password <8 chars (400)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Bob\",\n  \"email\": \"bob@example.com\",\n  \"password\": \"short\"\n}"
+            }
+          }
+        },
+
+        {
+          "name": "[F1-6] Register – empty body (400)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{}" }
+          }
+        },
+
+        {
+          "name": "[F2-1] Login – valid credentials (200 + JWT)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"alice@example.com\",\n  \"password\": \"Password123\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('status 200', () => pm.response.to.have.status(200));",
+                "pm.collectionVariables.set('userToken', pm.response.json().token);"
+              ]
+            }
+          }]
+        },
+
+        {
+          "name": "[F2-2] Login – wrong password (401)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"alice@example.com\",\n  \"password\": \"WrongPassword\"\n}"
+            }
+          }
+        },
+
+        {
+          "name": "[F2-3] Login – unknown email (401, same msg as wrong pwd)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"nobody@example.com\",\n  \"password\": \"Password123\"\n}"
+            }
+          }
+        },
+
+        {
+          "name": "[F2-4] Login – missing password field (400)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"alice@example.com\"\n}"
+            }
+          }
+        },
+
+        {
+          "name": "[F2-5] Login – missing email field (400)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"password\": \"Password123\"\n}"
+            }
+          }
+        },
+
+        {
+          "name": "[ADMIN-SETUP] Register admin user (201)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Admin User\",\n  \"email\": \"admin@example.com\",\n  \"password\": \"AdminPass123\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.collectionVariables.set('adminToken', pm.response.json().token);"
+              ]
+            }
+          }]
+        }
+
+      ]
+    },
+
+    {
+      "name": "── AUTH MIDDLEWARE ──",
+      "item": [
+
+        {
+          "name": "[F3-1] No token → 401",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/vehicles"
+          }
+        },
+
+        {
+          "name": "[F3-2] Malformed token → 401",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/vehicles",
+            "header": [{ "key": "Authorization", "value": "Bearer this.is.not.valid" }]
+          }
+        },
+
+        {
+          "name": "[F3-3] Expired token → 401",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/vehicles",
+            "header": [
+              { "key": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ0ZXN0Iiwicm9sZSI6IlVTRVIiLCJpYXQiOjE2MDAwMDAwMDAsImV4cCI6MTYwMDAwMDAwMX0.fake_expired" }
+            ]
+          }
+        },
+
+        {
+          "name": "[F3-4] Token without Bearer prefix → 401",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/vehicles",
+            "header": [{ "key": "Authorization", "value": "{{userToken}}" }]
+          }
+        }
+
+      ]
+    },
+
+    {
+      "name": "── VEHICLES (CRUD) ──",
+      "item": [
+
+        {
+          "name": "[F5-1] Create vehicle – valid (201)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/vehicles",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{userToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"make\": \"Toyota\",\n  \"model\": \"Camry\",\n  \"category\": \"Sedan\",\n  \"price\": 25000,\n  \"quantity\": 10\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('status 201', () => pm.response.to.have.status(201));",
+                "pm.test('has id', () => pm.expect(pm.response.json().id).to.be.a('string'));",
+                "pm.collectionVariables.set('vehicleId', pm.response.json().id);"
+              ]
+            }
+          }]
+        },
+
+        {
+          "name": "[F5-2] Create vehicle – quantity=0 (valid, 201)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/vehicles",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{userToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"make\": \"Honda\",\n  \"model\": \"Civic\",\n  \"category\": \"Sedan\",\n  \"price\": 22000,\n  \"quantity\": 0\n}"
+            }
+          }
+        },
+
+        {
+          "name": "[F5-3] Create vehicle – negative price (400)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/vehicles",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{userToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"make\": \"Ford\",\n  \"model\": \"Focus\",\n  \"category\": \"Sedan\",\n  \"price\": -5000,\n  \"quantity\": 10\n}"
+            }
+          }
+        },
+
+        {
+          "name": "[F5-4] Create vehicle – price = 0 (400)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/vehicles",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{userToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"make\": \"Ford\",\n  \"model\": \"Focus\",\n  \"category\": \"Sedan\",\n  \"price\": 0,\n  \"quantity\": 10\n}"
+            }
+          }
+        },
+
+        {
+          "name": "[F5-5] Create vehicle – negative quantity (400)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/vehicles",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{userToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"make\": \"Ford\",\n  \"model\": \"Focus\",\n  \"category\": \"Sedan\",\n  \"price\": 20000,\n  \"quantity\": -3\n}"
+            }
+          }
+        },
+
+        {
+          "name": "[F5-6] Create vehicle – missing required fields (400)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/vehicles",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{userToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"make\": \"Toyota\"\n}"
+            }
+          }
+        },
+
+        {
+          "name": "[F5-7] Create vehicle – no auth token (401)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/vehicles",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"make\": \"Toyota\",\n  \"model\": \"Camry\",\n  \"category\": \"Sedan\",\n  \"price\": 25000,\n  \"quantity\": 10\n}"
+            }
+          }
+        },
+
+        {
+          "name": "[F6-1] List all vehicles (200)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/vehicles",
+            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }]
+          }
+        },
+
+        {
+          "name": "[F6-2] List vehicles – no auth (401)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/vehicles"
+          }
+        },
+
+        {
+          "name": "[F8-1] Update vehicle – price only (partial, 200)",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/vehicles/{{vehicleId}}",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{userToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 28000\n}"
+            }
+          }
+        },
+
+        {
+          "name": "[F8-2] Update vehicle – full update (200)",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/vehicles/{{vehicleId}}",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{userToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"make\": \"Toyota\",\n  \"model\": \"Camry XLE\",\n  \"category\": \"Sedan\",\n  \"price\": 30000,\n  \"quantity\": 8\n}"
+            }
+          }
+        },
+
+        {
+          "name": "[F8-3] Update vehicle – non-existent id (404)",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/vehicles/00000000-0000-0000-0000-000000000000",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{userToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 30000\n}"
+            }
+          }
+        },
+
+        {
+          "name": "[F8-4] Update vehicle – negative price (400)",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/vehicles/{{vehicleId}}",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{userToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": -999\n}"
+            }
+          }
+        },
+
+        {
+          "name": "[F8-5] Update vehicle – empty body (400)",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/vehicles/{{vehicleId}}",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{userToken}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{}" }
+          }
+        },
+
+        {
+          "name": "[F8-6] Update vehicle – no auth (401)",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/vehicles/{{vehicleId}}",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"price\": 30000\n}" }
+          }
+        }
+
+      ]
+    },
+
+    {
+      "name": "── SEARCH / FILTER ──",
+      "item": [
+
+        {
+          "name": "[F7-1] Search by make (case-insensitive)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles/search?make=toyota",
+              "query": [{ "key": "make", "value": "toyota" }]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }]
+          }
+        },
+
+        {
+          "name": "[F7-2] Search by category",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles/search?category=Sedan",
+              "query": [{ "key": "category", "value": "Sedan" }]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }]
+          }
+        },
+
+        {
+          "name": "[F7-3] Search by price range",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles/search?minPrice=20000&maxPrice=30000",
+              "query": [
+                { "key": "minPrice", "value": "20000" },
+                { "key": "maxPrice", "value": "30000" }
+              ]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }]
+          }
+        },
+
+        {
+          "name": "[F7-4] Search multi-filter: make + category + minPrice",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles/search?make=Toyota&category=Sedan&minPrice=24000",
+              "query": [
+                { "key": "make", "value": "Toyota" },
+                { "key": "category", "value": "Sedan" },
+                { "key": "minPrice", "value": "24000" }
+              ]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }]
+          }
+        },
+
+        {
+          "name": "[F7-5] Search – no matches → empty array (200, not 404)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles/search?make=Lamborghini",
+              "query": [{ "key": "make", "value": "Lamborghini" }]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }]
+          }
+        },
+
+        {
+          "name": "[F7-6] Search – non-numeric minPrice (400)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles/search?minPrice=notanumber",
+              "query": [{ "key": "minPrice", "value": "notanumber" }]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }]
+          }
+        },
+
+        {
+          "name": "[F7-7] Search – non-numeric maxPrice (400)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles/search?maxPrice=abc",
+              "query": [{ "key": "maxPrice", "value": "abc" }]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }]
+          }
+        },
+
+        {
+          "name": "[F7-8] Search – no auth (401)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/vehicles/search?make=Toyota"
+          }
+        }
+
+      ]
+    },
+
+    {
+      "name": "── PURCHASE ──",
+      "item": [
+
+        {
+          "name": "[F10-1] Purchase – in-stock vehicle (200, qty decrements)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/vehicles/{{vehicleId}}/purchase",
+            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }]
+          }
+        },
+
+        {
+          "name": "[F10-2] Purchase – out-of-stock (409)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/vehicles/{{vehicleId}}/purchase",
+            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }]
+          }
+        },
+
+        {
+          "name": "[F10-3] Purchase – non-existent vehicle (404)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/vehicles/00000000-0000-0000-0000-000000000000/purchase",
+            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }]
+          }
+        },
+
+        {
+          "name": "[F10-4] Purchase – no auth (401)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/vehicles/{{vehicleId}}/purchase"
+          }
+        }
+
+      ]
+    },
+
+    {
+      "name": "── ADMIN: DELETE + RESTOCK ──",
+      "item": [
+
+        {
+          "name": "[F9-1] Delete vehicle – as USER (403)",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/vehicles/{{vehicleId}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }]
+          }
+        },
+
+        {
+          "name": "[F11-1] Restock vehicle – as USER (403)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/vehicles/{{vehicleId}}/restock",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{userToken}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"amount\": 5\n}" }
+          }
+        },
+
+        {
+          "name": "[F11-2] Restock – as ADMIN, valid amount (200)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/vehicles/{{vehicleId}}/restock",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"amount\": 10\n}" }
+          }
+        },
+
+        {
+          "name": "[F11-3] Restock – amount = 0 (400)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/vehicles/{{vehicleId}}/restock",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"amount\": 0\n}" }
+          }
+        },
+
+        {
+          "name": "[F11-4] Restock – negative amount (400)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/vehicles/{{vehicleId}}/restock",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"amount\": -5\n}" }
+          }
+        },
+
+        {
+          "name": "[F11-5] Restock – missing amount (400)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/vehicles/{{vehicleId}}/restock",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{}" }
+          }
+        },
+
+        {
+          "name": "[F11-6] Restock – non-existent vehicle (404)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/vehicles/00000000-0000-0000-0000-000000000000/restock",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"amount\": 5\n}" }
+          }
+        },
+
+        {
+          "name": "[F9-2] Delete vehicle – as ADMIN (200)",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/vehicles/{{vehicleId}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }]
+          }
+        },
+
+        {
+          "name": "[F9-3] Delete vehicle – already deleted / non-existent (404)",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/vehicles/{{vehicleId}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }]
+          }
+        }
+
+      ]
+    }
+
+  ]
+}
